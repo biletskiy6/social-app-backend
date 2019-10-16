@@ -7,7 +7,8 @@ firebase.initializeApp(config);
 
 const {
   validateSignupData,
-  validateLoginData
+  validateLoginData,
+  reduceUserDetails
 } = require("../utils/validators");
 
 exports.signup = (req, res) => {
@@ -102,6 +103,10 @@ exports.uploadImage = (req, res) => {
     imageToBeUploaded = {};
 
   busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+    if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
+      return res.status(400).json({ message: "Wrong file type" });
+    }
+
     const imageExtension = filename.split(".")[filename.split(".").length - 1];
     imageFileName = `${Math.round(
       Math.random() * 1000000000
@@ -135,4 +140,17 @@ exports.uploadImage = (req, res) => {
       });
   });
   busboy.end(req.rawBody);
+};
+
+exports.addUserDetails = (req, res) => {
+  let userDetails = reduceUserDetails(req.body);
+  db.doc(`/users/${req.user.handle}`)
+    .update(userDetails)
+    .then(() => {
+      return res.json({ message: "Details added successfuly" });
+    })
+    .catch(err => {
+      console.log(err);
+      return res.status(500).json({ error: err.code });
+    });
 };
